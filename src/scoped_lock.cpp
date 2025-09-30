@@ -26,7 +26,6 @@ std::mutex m;
 void add_count() {
   // The constructor of std::scoped_lock allows for the thread to acquire the
   // mutex m.
-  std::scoped_lock slk(m);
   count += 1;
 
   // Once the function add_count finishes, the object slk is out of scope, and

@@ -37,8 +37,11 @@ add_executable(mutex src/mutex.cpp)
 add_executable(scoped_lock src/scoped_lock.cpp)
 add_executable(condition_variable src/condition_variable.cpp)
 add_executable(rwlock src/rwlock.cpp)
+add_executable(strings src/strings.cpp)
 
 # Compiling misc executables
+add_executable(data_types src/data_types.cpp)
+add_executable(memory_management src/memory_management.cpp)
 add_executable(wrapper_class src/wrapper_class.cpp)
 add_executable(iterator src/iterator.cpp)
 add_executable(auto src/auto.cpp)

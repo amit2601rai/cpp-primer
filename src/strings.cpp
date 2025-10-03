@@ -16,6 +16,8 @@
 #include <vector>
 #include <typeinfo>  // For type information
 #include <cctype>    // For character classification functions
+#include <stack>     // For stack-based reversal
+#include <functional> // For std::function
 
 void demonstrate_character_types() {
   std::cout << "=== CHARACTER TYPES AND PROPERTIES ===" << std::endl;
@@ -526,6 +528,335 @@ void demonstrate_string_iterators() {
   std::cout << std::endl;
 }
 
+void demonstrate_string_reversal() {
+  std::cout << "=== STRING REVERSAL METHODS ===" << std::endl;
+  
+  std::string original = "Hello World!";
+  std::cout << "Original string: '" << original << "'" << std::endl << std::endl;
+  
+  // Method 1: Using std::reverse algorithm
+  std::cout << "Method 1 - Using std::reverse algorithm:" << std::endl;
+  std::string method1 = original;
+  std::reverse(method1.begin(), method1.end());
+  std::cout << "Result: '" << method1 << "'" << std::endl;
+  
+  // Method 2: Manual reversal using iterators
+  std::cout << "\nMethod 2 - Manual reversal using iterators:" << std::endl;
+  std::string method2 = original;
+  auto start = method2.begin();
+  auto end = method2.end() - 1;
+  
+  while (start < end) {
+    std::swap(*start, *end);
+    ++start;
+    --end;
+  }
+  std::cout << "Result: '" << method2 << "'" << std::endl;
+  
+  // Method 3: Using reverse constructor
+  std::cout << "\nMethod 3 - Using reverse iterator constructor:" << std::endl;
+  std::string method3(original.rbegin(), original.rend());
+  std::cout << "Result: '" << method3 << "'" << std::endl;
+  
+  // Method 4: Manual reversal with indexing
+  std::cout << "\nMethod 4 - Manual reversal with indexing:" << std::endl;
+  std::string method4 = original;
+  size_t n = method4.length();
+  
+  for (size_t i = 0; i < n / 2; ++i) {
+    std::swap(method4[i], method4[n - 1 - i]);
+  }
+  std::cout << "Result: '" << method4 << "'" << std::endl;
+  
+  // Method 5: Building reversed string character by character
+  std::cout << "\nMethod 5 - Building reversed string character by character:" << std::endl;
+  std::string method5;
+  for (int i = static_cast<int>(original.length()) - 1; i >= 0; --i) {
+    method5 += original[i];
+  }
+  std::cout << "Result: '" << method5 << "'" << std::endl;
+  
+  // Method 6: Using string assignment with reverse iterators
+  std::cout << "\nMethod 6 - Using string assignment with reverse iterators:" << std::endl;
+  std::string method6;
+  method6.assign(original.rbegin(), original.rend());
+  std::cout << "Result: '" << method6 << "'" << std::endl;
+  
+  // Method 7: Recursive reversal (for educational purposes)
+  std::cout << "\nMethod 7 - Recursive reversal:" << std::endl;
+  std::function<std::string(const std::string&, size_t, size_t)> reverse_recursive = 
+    [&](const std::string& str, size_t start, size_t end) -> std::string {
+      if (start >= end) {
+        return "";
+      }
+      return str[end] + reverse_recursive(str, start, end - 1);
+    };
+  
+  std::string method7 = reverse_recursive(original, 0, original.length() - 1);
+  std::cout << "Result: '" << method7 << "'" << std::endl;
+  
+  // Method 8: Using stack for reversal
+  std::cout << "\nMethod 8 - Using stack for reversal:" << std::endl;
+  std::stack<char> char_stack;
+  std::string method8;
+  
+  // Push all characters to stack
+  for (char c : original) {
+    char_stack.push(c);
+  }
+  
+  // Pop all characters from stack
+  while (!char_stack.empty()) {
+    method8 += char_stack.top();
+    char_stack.pop();
+  }
+  std::cout << "Result: '" << method8 << "'" << std::endl;
+  
+  // Demonstrating reversal of C-style strings
+  std::cout << "\n--- C-Style String Reversal ---" << std::endl;
+  char cstr[] = "C++ Programming";
+  std::cout << "Original C-string: '" << cstr << "'" << std::endl;
+  
+  // Method 9: Manual C-string reversal
+  size_t len = strlen(cstr);
+  for (size_t i = 0; i < len / 2; ++i) {
+    char temp = cstr[i];
+    cstr[i] = cstr[len - 1 - i];
+    cstr[len - 1 - i] = temp;
+  }
+  std::cout << "Reversed C-string: '" << cstr << "'" << std::endl;
+  
+  // Word-wise reversal
+  std::cout << "\n--- Word-wise Reversal ---" << std::endl;
+  std::string sentence = "Hello Beautiful World";
+  std::cout << "Original sentence: '" << sentence << "'" << std::endl;
+  
+  // Method 10: Reverse words in a sentence
+  std::vector<std::string> words;
+  std::stringstream ss(sentence);
+  std::string word;
+  
+  while (ss >> word) {
+    words.push_back(word);
+  }
+  
+  std::string reversed_sentence;
+  for (int i = static_cast<int>(words.size()) - 1; i >= 0; --i) {
+    reversed_sentence += words[i];
+    if (i > 0) reversed_sentence += " ";
+  }
+  std::cout << "Words reversed: '" << reversed_sentence << "'" << std::endl;
+  
+  // Method 11: Reverse each word in place
+  std::string sentence_copy = sentence;
+  std::stringstream ss2(sentence_copy);
+  std::string each_word_reversed;
+  
+  while (ss2 >> word) {
+    std::reverse(word.begin(), word.end());
+    each_word_reversed += word;
+    if (!ss2.eof()) each_word_reversed += " ";
+  }
+  std::cout << "Each word reversed: '" << each_word_reversed << "'" << std::endl;
+  
+  // Performance comparison
+  std::cout << "\n--- Performance Notes ---" << std::endl;
+  std::cout << "1. std::reverse() - Fastest, optimized by compiler" << std::endl;
+  std::cout << "2. Manual swap with iterators - Very fast, good for learning" << std::endl;
+  std::cout << "3. Reverse iterator constructor - Fast, creates new string" << std::endl;
+  std::cout << "4. Character-by-character building - Slower due to string reallocations" << std::endl;
+  std::cout << "5. Recursive approach - Slowest, high memory usage (not recommended for large strings)" << std::endl;
+  
+  std::cout << std::endl;
+}
+
+void demonstrate_string_copying() {
+  std::cout << "=== STRING COPYING AND MEMORY MANAGEMENT ===" << std::endl;
+  
+  /*
+  STRING COPYING THEORY:
+  
+  1. DEEP COPY vs SHALLOW COPY:
+     - Deep copy: Creates completely independent copy with separate memory
+     - Shallow copy: Copies pointer/reference, shares same memory
+     - std::string always performs deep copy by default
+     - C-style strings require manual deep copying
+  
+  2. COPY SEMANTICS:
+     - Copy constructor: Creates new string from existing string
+     - Copy assignment: Assigns one string's content to another
+     - Both operations create independent copies
+  
+  3. MEMORY IMPLICATIONS:
+     - Each std::string owns its own memory buffer
+     - Copying allocates new memory and copies characters
+     - No shared ownership between string objects
+     - Safe from dangling pointer issues
+  */
+  
+  // Demonstrating deep copy with std::string
+  std::cout << "=== STD::STRING DEEP COPYING ===" << std::endl;
+  
+  std::string original = "Hello, World!";
+  std::cout << "Original string: '" << original << "'" << std::endl;
+  std::cout << "Original address: " << static_cast<const void*>(original.c_str()) << std::endl;
+  std::cout << "Original size: " << original.size() << std::endl;
+  
+  // Method 1: Copy constructor (deep copy)
+  std::string copy1(original);
+  std::cout << "\nCopy constructor:" << std::endl;
+  std::cout << "copy1: '" << copy1 << "'" << std::endl;
+  std::cout << "copy1 address: " << static_cast<const void*>(copy1.c_str()) << std::endl;
+  std::cout << "Same content? " << (original == copy1 ? "Yes" : "No") << std::endl;
+  std::cout << "Same memory? " << (original.c_str() == copy1.c_str() ? "Yes" : "No") << std::endl;
+  
+  // Method 2: Copy assignment (deep copy)
+  std::string copy2;
+  copy2 = original;
+  std::cout << "\nCopy assignment:" << std::endl;
+  std::cout << "copy2: '" << copy2 << "'" << std::endl;
+  std::cout << "copy2 address: " << static_cast<const void*>(copy2.c_str()) << std::endl;
+  std::cout << "Same content? " << (original == copy2 ? "Yes" : "No") << std::endl;
+  std::cout << "Same memory? " << (original.c_str() == copy2.c_str() ? "Yes" : "No") << std::endl;
+  
+  // Method 3: Explicit copy using string constructor
+  std::string copy3(original.begin(), original.end());
+  std::cout << "\nIterator-based copy:" << std::endl;
+  std::cout << "copy3: '" << copy3 << "'" << std::endl;
+  std::cout << "copy3 address: " << static_cast<const void*>(copy3.c_str()) << std::endl;
+  
+  // Method 4: Substring copy (still deep copy)
+  std::string copy4 = original.substr(0);  // Copy entire string
+  std::cout << "\nSubstring copy:" << std::endl;
+  std::cout << "copy4: '" << copy4 << "'" << std::endl;
+  std::cout << "copy4 address: " << static_cast<const void*>(copy4.c_str()) << std::endl;
+  
+  // Demonstrate independence of copies
+  std::cout << "\n=== DEMONSTRATING COPY INDEPENDENCE ===" << std::endl;
+  std::cout << "Modifying original string..." << std::endl;
+  original[0] = 'h';  // Change 'H' to 'h'
+  original += " Modified!";
+  
+  std::cout << "\nAfter modification:" << std::endl;
+  std::cout << "original: '" << original << "'" << std::endl;
+  std::cout << "copy1:    '" << copy1 << "'" << std::endl;
+  std::cout << "copy2:    '" << copy2 << "'" << std::endl;
+  std::cout << "copy3:    '" << copy3 << "'" << std::endl;
+  std::cout << "copy4:    '" << copy4 << "'" << std::endl;
+  
+  std::cout << "Copies remain unchanged - proving deep copy!" << std::endl;
+  
+  // C-style string copying
+  std::cout << "\n=== C-STYLE STRING COPYING ===" << std::endl;
+  
+  const char* c_original = "Hello, C World!";
+  std::cout << "Original C-string: '" << c_original << "'" << std::endl;
+  std::cout << "Original address: " << static_cast<const void*>(c_original) << std::endl;
+  
+  // WRONG: Shallow copy (dangerous!)
+  const char* shallow_copy = c_original;  // Just copies pointer!
+  std::cout << "\nShallow copy (DANGEROUS):" << std::endl;
+  std::cout << "shallow_copy: '" << shallow_copy << "'" << std::endl;
+  std::cout << "shallow_copy address: " << static_cast<const void*>(shallow_copy) << std::endl;
+  std::cout << "Same memory? " << (c_original == shallow_copy ? "Yes (PROBLEM!)" : "No") << std::endl;
+  
+  // CORRECT: Deep copy using strcpy
+  char deep_copy[50];  // Allocate buffer
+  strcpy(deep_copy, c_original);
+  std::cout << "\nDeep copy using strcpy:" << std::endl;
+  std::cout << "deep_copy: '" << deep_copy << "'" << std::endl;
+  std::cout << "deep_copy address: " << static_cast<const void*>(deep_copy) << std::endl;
+  std::cout << "Same memory? " << (c_original == deep_copy ? "Yes" : "No (CORRECT!)") << std::endl;
+  
+  // CORRECT: Deep copy using strdup (allocates memory)
+  char* dynamic_copy = strdup(c_original);
+  std::cout << "\nDeep copy using strdup:" << std::endl;
+  std::cout << "dynamic_copy: '" << dynamic_copy << "'" << std::endl;
+  std::cout << "dynamic_copy address: " << static_cast<const void*>(dynamic_copy) << std::endl;
+  std::cout << "Same memory? " << (c_original == dynamic_copy ? "Yes" : "No (CORRECT!)") << std::endl;
+  
+  // Demonstrate C-string copy independence
+  deep_copy[0] = 'h';  // Modify copy
+  std::cout << "\nAfter modifying deep_copy[0] to 'h':" << std::endl;
+  std::cout << "c_original: '" << c_original << "'" << std::endl;
+  std::cout << "deep_copy:  '" << deep_copy << "'" << std::endl;
+  std::cout << "Original unchanged - proving deep copy!" << std::endl;
+  
+  // Clean up dynamic memory
+  free(dynamic_copy);
+  
+  // String copying with different sizes
+  std::cout << "\n=== COPYING WITH DIFFERENT SIZES ===" << std::endl;
+  
+  std::string small_str = "Hi";
+  std::string large_str = "This is a much longer string that will require more memory allocation";
+  
+  std::cout << "Small string: '" << small_str << "' (size: " << small_str.size() << ")" << std::endl;
+  std::cout << "Large string size: " << large_str.size() << std::endl;
+  
+  // Copy small to large
+  std::string copy_small = small_str;
+  std::cout << "\nCopy of small: '" << copy_small << "' (size: " << copy_small.size() << ")" << std::endl;
+  
+  // Copy large to small variable
+  copy_small = large_str;  // Assignment resizes automatically
+  std::cout << "After assigning large to copy_small:" << std::endl;
+  std::cout << "copy_small size: " << copy_small.size() << std::endl;
+  std::cout << "copy_small capacity: " << copy_small.capacity() << std::endl;
+  
+  // Partial copying
+  std::cout << "\n=== PARTIAL STRING COPYING ===" << std::endl;
+  
+  std::string source = "Hello, Beautiful World!";
+  std::cout << "Source: '" << source << "'" << std::endl;
+  
+  // Copy substring
+  std::string partial1 = source.substr(7, 9);  // "Beautiful"
+  std::cout << "Partial copy 1: '" << partial1 << "'" << std::endl;
+  
+  // Copy using constructor with count
+  std::string partial2(source, 0, 5);  // "Hello"
+  std::cout << "Partial copy 2: '" << partial2 << "'" << std::endl;
+  
+  // Copy using assign method
+  std::string partial3;
+  partial3.assign(source, 7, 9);
+  std::cout << "Partial copy 3: '" << partial3 << "'" << std::endl;
+  
+  // Performance considerations
+  std::cout << "\n=== COPY PERFORMANCE NOTES ===" << std::endl;
+  std::cout << "1. std::string copying is O(n) where n is string length" << std::endl;
+  std::cout << "2. Short String Optimization (SSO) avoids heap allocation for small strings" << std::endl;
+  std::cout << "3. C-style string copying also O(n) but manual memory management" << std::endl;
+  std::cout << "4. Move semantics (C++11) can avoid copying when possible" << std::endl;
+  std::cout << "5. String views (C++17) provide non-owning references without copying" << std::endl;
+  
+  // Copy vs Move demonstration
+  std::cout << "\n=== COPY vs MOVE SEMANTICS ===" << std::endl;
+  
+  std::string move_source = "This string will be moved";
+  std::cout << "Before move - source: '" << move_source << "'" << std::endl;
+  std::cout << "Source size: " << move_source.size() << std::endl;
+  
+  // Move constructor (transfers ownership, no deep copy)
+  std::string moved_to = std::move(move_source);
+  std::cout << "\nAfter move:" << std::endl;
+  std::cout << "moved_to: '" << moved_to << "'" << std::endl;
+  std::cout << "move_source: '" << move_source << "' (moved-from state)" << std::endl;
+  std::cout << "move_source size: " << move_source.size() << std::endl;
+  
+  // Best practices
+  std::cout << "\n=== COPYING BEST PRACTICES ===" << std::endl;
+  std::cout << "1. Use std::string for automatic deep copying" << std::endl;
+  std::cout << "2. Prefer copy initialization: string s = other;" << std::endl;
+  std::cout << "3. Use const references to avoid unnecessary copies" << std::endl;
+  std::cout << "4. Consider move semantics for temporary objects" << std::endl;
+  std::cout << "5. Be careful with C-style string pointers (shallow copy risk)" << std::endl;
+  std::cout << "6. Use string_view for read-only access without copying" << std::endl;
+  
+  std::cout << std::endl;
+}
+
 void demonstrate_performance_comparison() {
   std::cout << "=== PERFORMANCE NOTES ===" << std::endl;
   
@@ -560,6 +891,8 @@ int main() {
   demonstrate_string_conversion();
   demonstrate_string_streams();
   demonstrate_string_iterators();
+  demonstrate_string_reversal();
+  demonstrate_string_copying();
   demonstrate_performance_comparison();
   
   std::cout << "Tutorial completed successfully!" << std::endl;

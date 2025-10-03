@@ -5,12 +5,151 @@
  */
 
 // This program provides a comprehensive overview of C++ memory management including:
-// - Memory model and layout
+// - Memory model and layout (VIRTUAL MEMORY LAYOUT OF A PROCESS)
 // - Stack vs Heap memory
 // - Dynamic memory allocation
 // - Memory leaks and best practices
 // - Smart pointers and RAII
 // - Memory alignment and optimization
+//
+// NOTE: This represents the VIRTUAL MEMORY LAYOUT of a process, NOT the PCB!
+//
+// PCB (Process Control Block) vs Virtual Memory Layout:
+// ┌─ PCB (Kernel Data Structure) ───────────────────┐
+// │                                                │
+// │ ┌─ Process Control Block ──────────────────┐   │
+// │ │ • Process ID (PID)                      │   │
+// │ │ • Process State (running/waiting/ready) │   │
+// │ │ • CPU Registers (saved context)         │   │
+// │ │ • Memory Management Info:               │   │
+// │ │   - Page table pointer                  │   │
+// │ │   - Segment table pointer               │   │
+// │ │   - Memory limits/permissions           │   │
+// │ │ • File Descriptor Table                 │   │
+// │ │ • Scheduling Info (priority, time)      │   │
+// │ │ • Parent/Child Process Pointers         │   │
+// │ │ • Signal Handlers                       │   │
+// │ │ • Working Directory                     │   │
+// │ │ • User/Group IDs                        │   │
+// │ └─────────────────────────────────────────┘   │
+// └────────────────────────────────────────────────┘
+//
+// ┌─ Virtual Memory Layout (What we show below) ────┐
+// │                                                │
+// │ ┌─ Process Virtual Address Space ──────────┐   │
+// │ │ │ Stack (high addresses)                │   │
+// │ │ │ ↓ grows downward                      │   │
+// │ │ │                                       │   │
+// │ │ │ ↕ unused space                        │   │
+// │ │ │                                       │   │
+// │ │ │ ↑ grows upward                        │   │
+// │ │ │ Heap (dynamic allocation)             │   │
+// │ │ │ BSS (uninitialized globals)           │   │
+// │ │ │ Data (initialized globals)            │   │
+// │ │ │ Text/Code (program instructions)      │   │
+// │ │ └─────────────────────────────────────┘   │
+// └────────────────────────────────────────────────┘
+//
+// Key Differences:
+// - PCB: OS kernel data structure for process management
+// - Virtual Memory Layout: How memory appears to the running process
+// - PCB contains METADATA about the process
+// - Virtual Memory Layout contains the ACTUAL PROGRAM DATA AND CODE
+//
+// MEMORY MANAGEMENT MECHANISMS: Page Table vs Segment Table
+// ═══════════════════════════════════════════════════════════
+//
+// ┌─ PAGING (Page Table) ────────────────────────────────────┐
+// │                                                         │
+// │ Concept: Divide memory into fixed-size blocks (pages)   │
+// │                                                         │
+// │ Virtual Address Space:                                  │
+// │ ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐       │
+// │ │Page0│Page1│Page2│Page3│Page4│Page5│Page6│Page7│       │
+// │ │4KB  │4KB  │4KB  │4KB  │4KB  │4KB  │4KB  │4KB  │       │
+// │ └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘       │
+// │                                                         │
+// │ Physical Memory (Frames):                               │
+// │ ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐       │
+// │ │Frame│Frame│Frame│Frame│Frame│Frame│Frame│Frame│       │
+// │ │  0  │  1  │  2  │  3  │  4  │  5  │  6  │  7  │       │
+// │ └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘       │
+// │                                                         │
+// │ Page Table Maps Pages → Frames:                         │
+// │ ┌─ Page Table ──────────────────────────────────────┐   │
+// │ │ Page 0 → Frame 3  │ Valid: 1 │ R/W: 1 │ Present │   │
+// │ │ Page 1 → Frame 1  │ Valid: 1 │ R/W: 1 │ Present │   │
+// │ │ Page 2 → Frame 7  │ Valid: 1 │ R/W: 0 │ Present │   │
+// │ │ Page 3 → Frame 2  │ Valid: 0 │ R/W: 0 │ Swapped │   │
+// │ │ Page 4 → Frame 5  │ Valid: 1 │ R/W: 1 │ Present │   │
+// │ │ ...               │          │        │         │   │
+// │ └───────────────────────────────────────────────────┘   │
+// │                                                         │
+// │ Characteristics:                                        │
+// │ • Fixed page size (typically 4KB)                      │
+// │ • No external fragmentation                             │
+// │ • Internal fragmentation possible                       │
+// │ • Transparent to programmer                             │
+// │ • Hardware MMU support required                         │
+// └─────────────────────────────────────────────────────────┘
+//
+// ┌─ SEGMENTATION (Segment Table) ───────────────────────────┐
+// │                                                         │
+// │ Concept: Divide memory into logical segments            │
+// │                                                         │
+// │ Virtual Address Space:                                  │
+// │ ┌───────────────────────────────────────────────────┐   │
+// │ │ Segment 0: Code Segment (Instructions)           │   │
+// │ │ Base: 0x1000, Limit: 8KB, R/X permissions       │   │
+// │ ├───────────────────────────────────────────────────┤   │
+// │ │ Segment 1: Data Segment (Global Variables)       │   │
+// │ │ Base: 0x3000, Limit: 4KB, R/W permissions       │   │
+// │ ├───────────────────────────────────────────────────┤   │
+// │ │ Segment 2: Stack Segment (Local Variables)       │   │
+// │ │ Base: 0x7000, Limit: 16KB, R/W permissions      │   │
+// │ ├───────────────────────────────────────────────────┤   │
+// │ │ Segment 3: Heap Segment (Dynamic Allocation)     │   │
+// │ │ Base: 0x5000, Limit: 32KB, R/W permissions      │   │
+// │ └───────────────────────────────────────────────────┘   │
+// │                                                         │
+// │ Segment Table:                                          │
+// │ ┌─ Segment Table ───────────────────────────────────┐   │
+// │ │ Seg 0 │ Base: 0x1000 │ Limit: 8KB  │ R/X │ Valid │   │
+// │ │ Seg 1 │ Base: 0x3000 │ Limit: 4KB  │ R/W │ Valid │   │
+// │ │ Seg 2 │ Base: 0x7000 │ Limit: 16KB │ R/W │ Valid │   │
+// │ │ Seg 3 │ Base: 0x5000 │ Limit: 32KB │ R/W │ Valid │   │
+// │ └───────────────────────────────────────────────────┘   │
+// │                                                         │
+// │ Address Translation:                                    │
+// │ Virtual Address = (Segment ID, Offset)                 │
+// │ Physical Address = Segment_Base + Offset               │
+// │                                                         │
+// │ Characteristics:                                        │
+// │ • Variable segment sizes                                │
+// │ • Logical organization (matches program structure)     │
+// │ • External fragmentation possible                       │
+// │ • No internal fragmentation                             │
+// │ • Protection at segment level                           │
+// └─────────────────────────────────────────────────────────┘
+//
+// COMPARISON SUMMARY:
+// ┌─────────────────┬─────────────────┬─────────────────────┐
+// │    Aspect       │     Paging      │    Segmentation     │
+// ├─────────────────┼─────────────────┼─────────────────────┤
+// │ Unit Size       │ Fixed (4KB)     │ Variable            │
+// │ Fragmentation   │ Internal only   │ External only       │
+// │ Logical View    │ Linear/Flat     │ Multiple segments   │
+// │ Protection      │ Page-level      │ Segment-level       │
+// │ Sharing         │ Page-based      │ Segment-based       │
+// │ Growth          │ Page-by-page    │ Segment expansion   │
+// │ Programmer      │ Transparent     │ May be visible      │
+// │ Hardware        │ MMU required    │ Segment registers   │
+// └─────────────────┴─────────────────┴─────────────────────┘
+//
+// MODERN SYSTEMS often use BOTH:
+// • Segmented Paging: Segments divided into pages
+// • x86-64: Flat memory model with paging (segments mostly legacy)
+// • Each approach solves different aspects of memory management
 
 #include <iostream>
 #include <string>
@@ -26,7 +165,53 @@ class Resource;
 void demonstrate_memory_model() {
   std::cout << "=== C++ MEMORY MODEL AND LAYOUT ===" << std::endl;
   
-  std::cout << "--- Memory Segments ---" << std::endl;
+  // Complete Memory Layout Diagram:
+  // ┌─────────────────────────────────────────────────┐
+  // │                 HIGH ADDRESSES                  │
+  // ├─────────────────────────────────────────────────┤
+  // │  STACK (grows downward ↓)                      │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ Function parameters                     │    │
+  // │  │ Return addresses                        │    │
+  // │  │ Local variables                         │    │
+  // │  │ Auto objects (RAII)                     │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │                    ↕                            │
+  // │              UNUSED SPACE                       │
+  // │                    ↕                            │
+  // ├─────────────────────────────────────────────────┤
+  // │  HEAP (grows upward ↑)                         │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ new/malloc allocated objects            │    │
+  // │  │ Dynamic arrays                          │    │
+  // │  │ Smart pointer managed objects           │    │
+  // │  │ STL container internal storage          │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │  BSS SEGMENT (uninitialized data)              │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ static int uninitialized_global;       │    │
+  // │  │ Global arrays without initializers     │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │  DATA SEGMENT (initialized data)               │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ static int initialized_global = 42;    │    │
+  // │  │ const char* string_literal = "hello"; │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │  CODE/TEXT SEGMENT (read-only)                 │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ Machine code instructions               │    │
+  // │  │ Function definitions                    │    │
+  // │  │ String literals                         │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │                 LOW ADDRESSES                   │
+  // └─────────────────────────────────────────────────┘
+  
+  std::cout << "\n--- Memory Segments ---" << std::endl;
   std::cout << "1. Code/Text Segment: Contains executable instructions" << std::endl;
   std::cout << "2. Data Segment: Global and static variables (initialized)" << std::endl;
   std::cout << "3. BSS Segment: Uninitialized global and static variables" << std::endl;
@@ -52,6 +237,21 @@ void demonstrate_memory_model() {
   std::cout << "Heap variable: " << heap_var << std::endl;
   std::cout << "Function address: " << reinterpret_cast<void*>(&demonstrate_memory_model) << std::endl;
   
+  // Address Space Visualization:
+  // ┌─ Stack (High Addresses) ─────────────────────┐
+  // │ Local variable:    0x7fff5fbff6bc            │
+  // │ Local array:       0x7fff5fbff2bc            │
+  // ├──────────────────────────────────────────────┤
+  // │                   Gap                        │
+  // ├─ Heap (Dynamic) ─────────────────────────────┤
+  // │ Heap variable:     0x7f8b1bc05a70            │
+  // ├─ Data Segment ───────────────────────────────┤
+  // │ Global init:       0x100008030               │
+  // │ Global uninit:     0x100008034               │
+  // ├─ Code Segment ───────────────────────────────┤
+  // │ Function addr:     0x100001e80               │
+  // └─ (Low Addresses) ───────────────────────────┘
+  
   // Clean up
   delete heap_var;
   
@@ -61,7 +261,41 @@ void demonstrate_memory_model() {
 void demonstrate_stack_memory() {
   std::cout << "=== STACK MEMORY ===" << std::endl;
   
-  std::cout << "--- Stack Characteristics ---" << std::endl;
+  // Stack Memory Layout:
+  // ┌─────────────────────────────────────────────────┐
+  // │                HIGH ADDRESSES                   │
+  // ├─────────────────────────────────────────────────┤
+  // │  MAIN FUNCTION FRAME                           │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ main() local variables                  │    │
+  // │  │ argc, argv                              │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │  CURRENT FUNCTION FRAME                        │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ Return address to main()                │    │
+  // │  │ Function parameters                     │    │
+  // │  │ Local variables (this function)         │    │
+  // │  │ ┌─ stack_int (4 bytes)                 │    │
+  // │  │ ├─ stack_double (8 bytes)              │    │
+  // │  │ ├─ stack_array (256 bytes)             │    │
+  // │  │ ├─ stack_string (object)               │    │
+  // │  │ └─ stack_vector (object)               │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │  LAMBDA/NESTED FUNCTION FRAME                  │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ Return address                          │    │
+  // │  │ Captured variables (references)        │    │
+  // │  │ nested_var                              │    │
+  // │  └─────────────────────────────────────────┘    │
+  // ├─────────────────────────────────────────────────┤
+  // │  STACK POINTER (SP) →                          │
+  // │                LOW ADDRESSES                    │
+  // └─────────────────────────────────────────────────┘
+  //          ↑ Stack grows downward ↑
+  
+  std::cout << "\n--- Stack Characteristics ---" << std::endl;
   std::cout << "- Fast allocation/deallocation (just move stack pointer)" << std::endl;
   std::cout << "- Automatic cleanup (RAII - Resource Acquisition Is Initialization)" << std::endl;
   std::cout << "- Limited size (typically 1-8 MB)" << std::endl;
@@ -88,8 +322,27 @@ void demonstrate_stack_memory() {
   
   // Demonstrate stack frame
   std::cout << "\n--- Stack Frame Demonstration ---" << std::endl;
+  
+  // Before lambda call:
+  // ┌─ Current Frame ─────────────────────────┐
+  // │ stack_int:    0x7fff5fbff6bc           │
+  // │ stack_double: 0x7fff5fbff6b0           │
+  // │ stack_vector: 0x7fff5fbff680           │
+  // └─────────────────────────────────────────┘
+  
   auto lambda = [&]() {
     int nested_var = 999;
+    
+    // During lambda execution:
+    // ┌─ Lambda Frame ──────────────────────────┐
+    // │ nested_var:   0x7fff5fbff67c           │
+    // │ [&] captures: references to outer vars │
+    // └─────────────────────────────────────────┘
+    // ┌─ Outer Frame ───────────────────────────┐
+    // │ stack_int:    0x7fff5fbff6bc           │
+    // │ (still accessible via reference)       │
+    // └─────────────────────────────────────────┘
+    
     std::cout << "Nested variable: " << nested_var << " at " << &nested_var << std::endl;
     std::cout << "Distance from outer variable: " << 
                  abs(reinterpret_cast<intptr_t>(&nested_var) - reinterpret_cast<intptr_t>(&stack_int)) 
@@ -108,7 +361,37 @@ void demonstrate_stack_memory() {
 void demonstrate_heap_memory() {
   std::cout << "=== HEAP MEMORY ===" << std::endl;
   
-  std::cout << "--- Heap Characteristics ---" << std::endl;
+  // Heap Memory Structure:
+  // ┌─────────────────────────────────────────────────┐
+  // │                 HEAP MEMORY                     │
+  // ├─────────────────────────────────────────────────┤
+  // │  FREE BLOCKS (available for allocation)        │
+  // │  ┌─────────┐ ┌───────────┐ ┌─────────────┐     │
+  // │  │ Free    │ │ Free      │ │ Free        │     │
+  // │  │ 64 bytes│ │ 128 bytes │ │ 256 bytes   │     │
+  // │  └─────────┘ └───────────┘ └─────────────┘     │
+  // ├─────────────────────────────────────────────────┤
+  // │  ALLOCATED BLOCKS (in use)                     │
+  // │  ┌─────────┐ ┌─────────┐ ┌─────────────────┐   │
+  // │  │ Object1 │ │ Array   │ │ Large Object    │   │
+  // │  │ 4 bytes │ │ 40 bytes│ │ 1000 bytes      │   │
+  // │  └─────────┘ └─────────┘ └─────────────────┘   │
+  // ├─────────────────────────────────────────────────┤
+  // │  FRAGMENTED SPACE (unusable small blocks)      │
+  // │  ┌─┐ ┌───┐ ┌─┐ ┌──┐                            │
+  // │  │ │ │   │ │ │ │  │ (too small for requests)   │
+  // │  └─┘ └───┘ └─┘ └──┘                            │
+  // ├─────────────────────────────────────────────────┤
+  // │                  METADATA                       │
+  // │  ┌─────────────────────────────────────────┐    │
+  // │  │ Block headers with size info            │    │
+  // │  │ Free list pointers                      │    │
+  // │  │ Allocation bookkeeping                  │    │
+  // │  └─────────────────────────────────────────┘    │
+  // └─────────────────────────────────────────────────┘
+  //               ↑ Heap grows upward ↑
+  
+  std::cout << "\n--- Heap Characteristics ---" << std::endl;
   std::cout << "- Slower allocation/deallocation (requires memory management)" << std::endl;
   std::cout << "- Manual cleanup required (or use smart pointers)" << std::endl;
   std::cout << "- Large size (limited by available RAM)" << std::endl;
@@ -139,6 +422,34 @@ void demonstrate_heap_memory() {
   }
   std::cout << std::endl;
   std::cout << "heap_array starts at: " << heap_array << std::endl;
+  
+  // Memory Layout of Allocated Objects:
+  // ┌─ Heap Allocation Pattern ──────────────────────┐
+  // │                                                │
+  // │ heap_int:    [0x7f8b1bc05a70] → 4 bytes       │
+  // │               ┌─────┐                          │
+  // │               │  42 │                          │
+  // │               └─────┘                          │
+  // │                                                │
+  // │ heap_double: [0x7f8b1bc05a80] → 8 bytes       │
+  // │               ┌─────────────┐                  │
+  // │               │   3.14159   │                  │
+  // │               └─────────────┘                  │
+  // │                                                │
+  // │ heap_string: [0x7f8b1bc05a90] → object        │
+  // │               ┌─────────────────────────────┐  │
+  // │               │ std::string object          │  │
+  // │               │ ├─ size: 21                 │  │
+  // │               │ ├─ capacity: >21            │  │
+  // │               │ └─ data*: → "Heap-alloc..." │  │
+  // │               └─────────────────────────────┘  │
+  // │                                                │
+  // │ heap_array:  [0x7f8b1bc05ab0] → 4000 bytes    │
+  // │               ┌─────┬─────┬─────┬─────┬───┐    │
+  // │               │  0  │  1  │  4  │  9  │...│    │
+  // │               └─────┴─────┴─────┴─────┴───┘    │
+  // │               [0]   [1]   [2]   [3]  ...[999] │
+  // └────────────────────────────────────────────────┘
   
   // Large allocation demonstration
   std::cout << "\n--- Large Allocation ---" << std::endl;
@@ -171,7 +482,33 @@ void demonstrate_heap_memory() {
 void demonstrate_memory_leaks() {
   std::cout << "=== MEMORY LEAKS AND COMMON PITFALLS ===" << std::endl;
   
-  std::cout << "--- What is a Memory Leak? ---" << std::endl;
+  // Memory Leak Visualization:
+  // ┌─ Normal Memory Usage ───────────────────────────┐
+  // │                                                │
+  // │ STACK:     │ int* ptr │ ──────┐                │
+  // │            └──────────┘       │                │
+  // │                               │                │
+  // │ HEAP:      ┌──────────┐      │                │
+  // │            │   42     │ ←────┘                │
+  // │            └──────────┘                       │
+  // │            ↑ Reachable via ptr                │
+  // └────────────────────────────────────────────────┘
+  //              delete ptr; // ✓ Memory freed
+  
+  // ┌─ Memory Leak Scenario ──────────────────────────┐
+  // │                                                │
+  // │ STACK:     │   ????   │                       │
+  // │            └──────────┘                       │
+  // │            ↑ ptr went out of scope            │
+  // │                                               │
+  // │ HEAP:      ┌──────────┐                      │
+  // │            │   42     │ ← LEAKED!             │
+  // │            └──────────┘   No way to access    │
+  // │            ↑ Unreachable memory               │
+  // └───────────────────────────────────────────────┘
+  //              // Forgot delete ptr; ✗ LEAK!
+  
+  std::cout << "\n--- What is a Memory Leak? ---" << std::endl;
   std::cout << "A memory leak occurs when dynamically allocated memory" << std::endl;
   std::cout << "is not properly deallocated, making it inaccessible but" << std::endl;
   std::cout << "still consuming system resources." << std::endl;
@@ -254,7 +591,42 @@ public:
 void demonstrate_smart_pointers() {
   std::cout << "=== SMART POINTERS (C++11 and later) ===" << std::endl;
   
-  std::cout << "Smart pointers automatically manage memory and provide" << std::endl;
+  // Smart Pointer Memory Management:
+  // ┌─ Raw Pointer (Manual Management) ───────────────┐
+  // │                                                │
+  // │ Resource* ptr = new Resource();                │
+  // │                                                │
+  // │ STACK:    │ ptr* │ ────────┐                   │
+  // │           └──────┘         │                   │
+  // │                           │                   │
+  // │ HEAP:     ┌─────────────┐ │                   │
+  // │           │ Resource    │←┘                   │
+  // │           │ object      │                     │
+  // │           └─────────────┘                     │
+  // │                                               │
+  // │ delete ptr; // ← MUST REMEMBER!              │
+  // └───────────────────────────────────────────────┘
+  
+  // ┌─ Smart Pointer (Automatic Management) ──────────┐
+  // │                                                │
+  // │ std::unique_ptr<Resource> ptr =                │
+  // │     std::make_unique<Resource>();              │
+  // │                                                │
+  // │ STACK:    ┌─────────────────┐                 │
+  // │           │ unique_ptr      │ ──────┐         │
+  // │           │ ├─ ptr*         │       │         │
+  // │           │ └─ deleter      │       │         │
+  // │           └─────────────────┘       │         │
+  // │                                     │         │
+  // │ HEAP:     ┌─────────────┐           │         │
+  // │           │ Resource    │←──────────┘         │
+  // │           │ object      │                     │
+  // │           └─────────────┘                     │
+  // │                                               │
+  // │ } // ← AUTOMATIC CLEANUP! No delete needed   │
+  // └───────────────────────────────────────────────┘
+  
+  std::cout << "\nSmart pointers automatically manage memory and provide" << std::endl;
   std::cout << "exception safety through RAII principles." << std::endl;
   
   // unique_ptr demonstration
@@ -279,6 +651,35 @@ void demonstrate_smart_pointers() {
   // shared_ptr demonstration
   std::cout << "\n--- std::shared_ptr ---" << std::endl;
   std::cout << "Shared ownership with reference counting" << std::endl;
+  
+  // shared_ptr Reference Counting:
+  // ┌─ shared_ptr Reference Counting ─────────────────┐
+  // │                                                │
+  // │ Initial state (count = 1):                    │
+  // │                                               │
+  // │ STACK:  ┌─────────────┐                      │
+  // │         │ shared_ptr1 │ ──┐                  │
+  // │         └─────────────┘   │                  │
+  // │                           │                  │
+  // │ HEAP:   ┌─────────────┐   │ ┌─────────────┐  │
+  // │         │ Resource    │←──┘ │ Control     │  │
+  // │         │ object      │     │ Block       │  │
+  // │         └─────────────┘     │ count: 1    │  │
+  // │                             └─────────────┘  │
+  // │                                              │
+  // │ After copy (count = 2):                     │
+  // │                                             │
+  // │ STACK:  ┌─────────────┐ ┌─────────────┐     │
+  // │         │ shared_ptr1 │ │ shared_ptr2 │     │
+  // │         └─────┬───────┘ └─────┬───────┘     │
+  // │               └───────┬───────┘             │
+  // │                       │                     │
+  // │ HEAP:   ┌─────────────┐ │ ┌─────────────┐   │
+  // │         │ Resource    │←┘ │ Control     │   │
+  // │         │ object      │   │ Block       │   │
+  // │         └─────────────┘   │ count: 2    │   │
+  // │                           └─────────────┘   │
+  // └─────────────────────────────────────────────┘
   
   {
     std::shared_ptr<Resource> shared_res = std::make_shared<Resource>("SharedResource");
@@ -320,7 +721,27 @@ void demonstrate_smart_pointers() {
 void demonstrate_memory_alignment() {
   std::cout << "=== MEMORY ALIGNMENT AND OPTIMIZATION ===" << std::endl;
   
-  std::cout << "--- Memory Alignment Basics ---" << std::endl;
+  // Memory Alignment Visualization:
+  // ┌─ Memory Address Layout (byte-by-byte) ──────────┐
+  // │                                                │
+  // │ Address:  0x00  0x01  0x02  0x03  0x04  0x05  │
+  // │           ┌────┬────┬────┬────┬────┬────┬────┐ │
+  // │ Aligned:  │char│    │    │    │int │int │int │ │
+  // │           │ A  │ ❌ │ ❌ │ ❌ │ B1 │ B2 │ B3 │ │
+  // │           └────┴────┴────┴────┴────┴────┴────┘ │
+  // │           ↑    ↑         padding        ↑      │
+  // │           1B   3B wasted space         4B      │
+  // │                                               │
+  // │ Address:  0x00  0x01  0x02  0x03  0x04  0x05  │
+  // │           ┌────┬────┬────┬────┬────┬────┬────┐ │
+  // │ Packed:   │int │int │int │int │char│    │    │ │
+  // │           │ B1 │ B2 │ B3 │ B4 │ A  │ ❌ │ ❌ │ │
+  // │           └────┴────┴────┴────┴────┴────┴────┘ │
+  // │           ↑         4B         ↑   ↑         │
+  // │           Better layout!       1B  2B pad    │
+  // └───────────────────────────────────────────────┘
+  
+  std::cout << "\n--- Memory Alignment Basics ---" << std::endl;
   std::cout << "Modern CPUs access memory more efficiently when data" << std::endl;
   std::cout << "is aligned to specific byte boundaries." << std::endl;
   
@@ -350,6 +771,40 @@ void demonstrate_memory_alignment() {
   std::cout << "Unpadded struct size: " << sizeof(Unpadded) << " bytes" << std::endl;
   std::cout << "Optimized struct size: " << sizeof(Optimized) << " bytes" << std::endl;
   
+  // Struct Padding Detailed Visualization:
+  // Unpadded struct layout:
+  // ┌─ struct Unpadded ───────────────────────────────┐
+  // │                                                │
+  // │ Offset: 0    1    2    3    4    5    6    7   │
+  // │         ┌────┬────┬────┬────┬────┬────┬────┬───┐│
+  // │         │char│ ❌ │ ❌ │ ❌ │int │int │int │int││
+  // │         │ c  │pad│pad│pad│ i1 │ i2 │ i3 │ i4 ││
+  // │         └────┴────┴────┴────┴────┴────┴────┴───┘│
+  // │         └─1B─┘└─3B padding─┘└────4B int────┘   │
+  // │                                                │
+  // │ Offset: 8    9    10   11   12                │
+  // │         ┌────┬────┬────┬────┐                 │
+  // │         │char│ ❌ │ ❌ │ ❌ │                 │
+  // │         │ c2 │pad│pad│pad│                 │
+  // │         └────┴────┴────┴────┘                 │
+  // │         └─1B─┘└─3B padding─┘                  │
+  // │                                               │
+  // │ Total size: 12 bytes (8 bytes wasted!)       │
+  // └───────────────────────────────────────────────┘
+  
+  // Optimized struct layout:
+  // ┌─ struct Optimized ──────────────────────────────┐
+  // │                                                │
+  // │ Offset: 0    1    2    3    4    5    6    7   │
+  // │         ┌────┬────┬────┬────┬────┬────┬────┬───┐│
+  // │         │int │int │int │int │char│char│ ❌ │ ❌ ││
+  // │         │ i1 │ i2 │ i3 │ i4 │ c1 │ c2 │pad│pad││
+  // │         └────┴────┴────┴────┴────┴────┴────┴───┘│
+  // │         └────4B int────┘└─1B─┘└1B┘└─2B pad─┘   │
+  // │                                                │
+  // │ Total size: 8 bytes (4 bytes saved!)          │
+  // └────────────────────────────────────────────────┘
+  
   // Cache line considerations
   std::cout << "\n--- Cache Line Considerations ---" << std::endl;
   std::cout << "Modern CPUs typically have 64-byte cache lines." << std::endl;
@@ -372,7 +827,37 @@ void demonstrate_memory_alignment() {
 void demonstrate_memory_pools() {
   std::cout << "=== MEMORY POOLS AND CUSTOM ALLOCATORS ===" << std::endl;
   
-  std::cout << "--- Memory Pool Concept ---" << std::endl;
+  // Memory Pool Architecture:
+  // ┌─ Traditional Heap Allocation ──────────────────┐
+  // │                                                │
+  // │ Each new/delete goes to system allocator:     │
+  // │                                               │
+  // │ ┌──────────────── HEAP ─────────────────────┐ │
+  // │ │ ┌───┐ ┌─────┐ ┌──┐   ┌────┐ ┌──┐ ┌──────┐│ │
+  // │ │ │ A │ │ FREE│ │B │   │FREE│ │C │ │ FREE ││ │
+  // │ │ └───┘ └─────┘ └──┘   └────┘ └──┘ └──────┘│ │
+  // │ └──────────────────────────────────────────┘ │
+  // │          ↑ Fragmented, slow allocation       │
+  // └───────────────────────────────────────────────┘
+  
+  // ┌─ Memory Pool Allocation ────────────────────────┐
+  // │                                                │
+  // │ Pre-allocate large block, divide into chunks: │
+  // │                                               │
+  // │ ┌──────────── MEMORY POOL ──────────────────┐ │
+  // │ │ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐│ │
+  // │ │ │ 0  │ │ 1  │ │ 2  │ │ 3  │ │ 4  │ │ 5  ││ │
+  // │ │ │USED│ │FREE│ │USED│ │FREE│ │USED│ │FREE││ │
+  // │ │ └────┘ └────┘ └────┘ └────┘ └────┘ └────┘│ │
+  // │ └──────────────────────────────────────────┘ │
+  // │                                              │
+  // │ ┌─ Free List ──────────────────────────────┐ │
+  // │ │ Head → Chunk1 → Chunk3 → Chunk5 → NULL  │ │
+  // │ └──────────────────────────────────────────┘ │
+  // │          ↑ Fast allocation, no fragmentation │
+  // └───────────────────────────────────────────────┘
+  
+  std::cout << "\n--- Memory Pool Concept ---" << std::endl;
   std::cout << "Memory pools pre-allocate large blocks of memory" << std::endl;
   std::cout << "and distribute smaller chunks as needed." << std::endl;
   std::cout << "Benefits:" << std::endl;
@@ -405,6 +890,28 @@ void demonstrate_memory_pools() {
     allocated_chunks.push_back(chunk_ptr);
     std::cout << "Allocated chunk " << i << " at: " << chunk_ptr << std::endl;
   }
+  
+  // Pool State After Allocations:
+  // ┌─ Memory Pool Layout ────────────────────────────┐
+  // │                                                │
+  // │ Pool Base: 0x7f8b1bc05000                      │
+  // │                                                │
+  // │ ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬───┐│
+  // │ │ 0   │ 1   │ 2   │ 3   │ 4   │ 5   │ 6   │...││
+  // │ │USED │USED │USED │USED │USED │USED │USED │...││
+  // │ └─────┴─────┴─────┴─────┴─────┴─────┴─────┴───┘│
+  // │  64B   64B   64B   64B   64B   64B   64B       │
+  // │                                               │
+  // │ ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬───┐│
+  // │ │ 7   │ 8   │ 9   │ 10  │ 11  │ 12  │ 13  │...││
+  // │ │USED │USED │USED │FREE │FREE │FREE │FREE │...││
+  // │ └─────┴─────┴─────┴─────┴─────┴─────┴─────┴───┘│
+  // │  64B   64B   64B   64B   64B   64B   64B       │
+  // │                                               │
+  // │ Allocation Pattern: O(1) time complexity      │
+  // │ ✓ 10 chunks allocated                         │
+  // │ ✓ 54 chunks remain free                       │
+  // └───────────────────────────────────────────────┘
   
   // Cleanup
   delete[] memory_pool;
@@ -469,6 +976,48 @@ void demonstrate_memory_best_practices() {
 
 void demonstrate_performance_comparison() {
   std::cout << "=== PERFORMANCE COMPARISON ===" << std::endl;
+  
+  // Stack vs Heap Performance Overview:
+  // ┌─ STACK ALLOCATION ──────────────────────────────┐
+  // │                                                │
+  // │ Algorithm: Move stack pointer                  │
+  // │                                               │
+  // │   BEFORE:  SP ────────────┐                   │
+  // │            ┌─────────────┐│                   │
+  // │            │             ││                   │
+  // │            │   FREE      ││                   │
+  // │            │   SPACE     ││                   │
+  // │            │             ││                   │
+  // │            └─────────────┘│                   │
+  // │                          │                   │
+  // │   AFTER:   ┌─────────────┐│                   │
+  // │            │   NEW       ││                   │
+  // │            │  VARIABLE   ││                   │
+  // │            └─────────────┘│                   │
+  // │            SP ────────────┘                   │
+  // │                                               │
+  // │ Time: ~1 CPU cycle                            │
+  // └───────────────────────────────────────────────┘
+  
+  // ┌─ HEAP ALLOCATION ───────────────────────────────┐
+  // │                                                │
+  // │ Algorithm: Search free list, split blocks     │
+  // │                                               │
+  // │ 1. Search free list for suitable block        │
+  // │    ┌─────┐    ┌──────┐    ┌────────┐          │
+  // │    │ 32B │ -> │ 64B  │ -> │ 128B ✓│          │
+  // │    └─────┘    └──────┘    └────────┘          │
+  // │                                               │
+  // │ 2. Split block if too large                   │
+  // │    ┌────────┐  =>  ┌─────┐ ┌─────┐             │
+  // │    │ 128B   │      │ 64B │ │ 64B │             │
+  // │    └────────┘      └─────┘ └─────┘             │
+  // │                    ALLOC   FREE               │
+  // │                                               │
+  // │ 3. Update metadata and bookkeeping            │
+  // │                                               │
+  // │ Time: ~100-1000 CPU cycles                    │
+  // └───────────────────────────────────────────────┘
   
   const size_t num_operations = 1000000;
   

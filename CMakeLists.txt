@@ -62,5 +62,11 @@ add_executable(namespaces src/namespaces.cpp)
 
 # Compiling bootcamp demo code
 add_executable(s24_my_ptr src/s24_my_ptr.cpp)
+add_executable(class_vs_struct src/class_vs_struct.cpp)
+add_executable(input_parsing src/input_parsing.cpp)
+add_executable(locking_mechanisms_comparison src/locking_mechanisms_comparison.cpp)
+
+# Compiling exercise programs
+add_executable(multithreading_exercises src/exercises/multithreading_exercises.cpp)
 
 add_executable(cpp_practice src/cpp_practice.cpp)

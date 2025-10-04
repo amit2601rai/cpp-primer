@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(Bootcamp
-        DESCRIPTION "C++ Bootcamp for 15-445/645"
+        DESCRIPTION "C++ Bootcamp"
         LANGUAGES CXX)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -61,4 +61,6 @@ add_executable(auto src/auto.cpp)
 add_executable(namespaces src/namespaces.cpp)
 
 # Compiling bootcamp demo code
-add_executable(s24_my_ptr src/spring2024/s24_my_ptr.cpp)
+add_executable(s24_my_ptr src/s24_my_ptr.cpp)
+
+add_executable(cpp_practice src/cpp_practice.cpp)
